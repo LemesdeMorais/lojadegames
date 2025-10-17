@@ -1,0 +1,400 @@
+/* ===== Base / reset ===== */
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+    background: radial-gradient(1200px 600px at 70% -10%, #1a1f2b 0%, #0b0d12 60%);
+    color: #e6edf3;
+}
+
+/* Container central alinhado */
+.container {
+    width: min(1120px, 92%);
+    margin-inline: auto;
+    padding-inline: 8px;
+    /* evita “colar” nas bordas em telas estreitas */
+}
+
+/* ===== NAVBAR DARK FIXA ===== */
+.topbar {
+    background: linear-gradient(180deg, rgba(17, 21, 29, 0.95), rgba(17, 21, 29, 0.85));
+    border-bottom: 1px solid #1f2532;
+    backdrop-filter: blur(8px);
+    z-index: 1030;
+}
+
+/* evita que a navbar sobreponha o conteúdo */
+/* Navbar fixa com o mesmo visual */
+.topbar{
+  background: linear-gradient(180deg, rgba(17,21,29,0.95), rgba(17,21,29,0.85));
+  border-bottom: 1px solid #1f2532;
+  backdrop-filter: blur(8px);
+  z-index: 1030;
+}
+/* evita sobrepor o conteúdo */
+body { padding-top: 72px; }
+
+.brand__logo{ font-size: 28px; }
+.brand__title{ font-size: 20px; color: #e6edf3; }
+
+.navbar-dark .navbar-nav .nav-link{ color:#e6edf3; transition:color .2s; }
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .show>.nav-link{ color:#7c5cff; }
+
+.dropdown-menu-dark{
+  background:#11151d; border:1px solid #232a39; border-radius:12px; min-width:220px; padding:6px;
+}
+.dropdown-item{ color:#e6edf3; border-radius:8px; }
+.dropdown-item:hover{ background:#1f2532; color:#7c5cff; }
+
+.input-search{
+  background:#11151d; border:1px solid #232a39; color:#e6edf3;
+  border-radius:12px; height:42px; min-width:260px;
+}
+.input-search:focus{ border-color:#7c5cff; box-shadow:0 0 0 3px rgba(124,92,255,.35); }
+@media (max-width: 992px){ .input-search{ min-width:100%; } }
+
+/* responsivo */
+@media (max-width: 992px) {
+    .input-search {
+        min-width: 100%;
+    }
+}
+
+/* ===== Layout principal ===== */
+.main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    /* conteúdo + painel lateral */
+    gap: 24px;
+    padding: 24px 0 40px;
+}
+
+/* Responsivo: quebra para 1 coluna e mantém tudo CENTRALIZADO */
+@media (max-width: 1080px) {
+    .main {
+        grid-template-columns: 1fr;
+    }
+
+    .panel {
+        position: static;
+        max-width: 720px;
+        width: 100%;
+        margin-inline: auto;
+    }
+}
+
+/* ===== Cards ===== */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+@media (max-width: 1100px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr)
+    }
+}
+
+@media (max-width: 640px) {
+    .cards {
+        grid-template-columns: 1fr
+    }
+}
+
+.card {
+    background: #151a24;
+    border: 1px solid #1f2532;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.card__imgWrap {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #0e1320;
+}
+
+.card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.badge {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background: rgba(124, 92, 255, .15);
+    color: #9e8bff;
+    border: 1px solid rgba(124, 92, 255, .4);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.card__body {
+    padding: 14px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.card__title {
+    margin: 0;
+    font-size: 18px
+}
+
+.card__desc {
+    margin: 0;
+    color: #9aa4b2;
+    line-height: 1.4;
+    max-height: 3.1em;
+    overflow: hidden;
+}
+
+.card__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px
+}
+
+.price {
+    font-weight: 700;
+}
+
+.stock {
+    color: #9aa4b2;
+    font-size: 14px
+}
+
+/* ===== Painel lateral / formulário ===== */
+.panel {
+    position: sticky;
+    top: 76px;
+    background: #11151d;
+    border: 1px solid #1f2532;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    height: fit-content;
+}
+
+.panel__title {
+    margin: 4px 0 12px;
+    font-size: 20px;
+    font-weight: 700
+}
+
+.panel__subtitle {
+    margin: 8px 0 6px;
+    font-size: 16px
+}
+
+.panel__divider {
+    height: 1px;
+    background: #1f2532;
+    margin: 16px 0;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+}
+
+/* grade de 2 colunas que não “estoura” o container */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 560px) {
+    .grid-2 {
+        grid-template-columns: 1fr
+    }
+}
+
+/* inputs do form ocupam 100% */
+.form .input,
+.form .select,
+.form textarea {
+    width: 100%;
+}
+
+/* deixa o textarea com a mesma estética e largura */
+.form textarea {
+    background: #11151d;
+    border: 1px solid #232a39;
+    color: #e6edf3;
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: calc(var(--control-h) * 1.8);
+}
+
+/* Botões */
+.btn {
+    width: 100%;
+    border: 1px solid rgba(124, 92, 255, .6);
+    background: linear-gradient(180deg, #7c5cff, #5a39e0);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn:hover {
+    filter: brightness(1.05)
+}
+
+.form__msg {
+    margin: 4px 0 0;
+    font-size: 14px
+}
+
+.form__msg--ok {
+    color: #1fbf75
+}
+
+.form__msg--warn {
+    color: #e9b949
+}
+
+.form__msg--error {
+    color: #ef4444
+}
+
+/* Lista de categorias (lateral) alinhada ao container */
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0
+}
+
+.list li {
+    padding: 10px 12px;
+    border: 1px solid #232a39;
+    border-radius: 12px;
+    background: #121826;
+    margin-bottom: 8px;
+    color: #9aa4b2;
+}
+
+/* Estado vazio */
+.empty {
+    color: #9aa4b2;
+    padding: 16px;
+    border: 1px dashed #2b3347;
+    border-radius: 12px;
+    background: #0f1421;
+}
+
+/* Footer sempre centralizado ao container */
+.footer {
+    margin-top: 32px;
+    border-top: 1px solid #1f2532;
+    background: #0d1119;
+    color: #9aa4b2;
+    padding: 18px 0;
+}
+
+/* ======= AJUSTES FINAIS DE ALINHAMENTO ======= */
+
+/* Garante que o conteúdo da main esteja centralizado no container */
+.main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    /* produtos + painel lateral */
+    gap: 24px;
+    align-items: start;
+    padding: 24px 0 40px;
+    max-width: 1120px;
+    margin-inline: auto;
+    width: 92%;
+}
+
+/* O painel lateral nunca ultrapassa o container */
+.panel {
+    position: sticky;
+    top: 80px;
+    background: #11151d;
+    border: 1px solid #1f2532;
+    border-radius: 16px;
+    padding: 20px;
+    height: fit-content;
+    width: 100%;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* Inputs do formulário se ajustam bem */
+.form .input,
+.form .select,
+.form textarea {
+    width: 100%;
+    background: #0f1421;
+    border: 1px solid #232a39;
+    border-radius: 10px;
+    color: #e6edf3;
+    padding: 10px 12px;
+}
+
+.form textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Responsividade */
+@media (max-width: 1080px) {
+    .main {
+        grid-template-columns: 1fr;
+        /* uma coluna só */
+    }
+
+    .panel {
+        position: static;
+        margin-top: 20px;
+        max-width: 700px;
+        margin-inline: auto;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 680px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .filters {
+        grid-template-columns: 1fr;
+    }
+
+    .btn {
+        font-size: 15px;
+    }
+}
+
+/* ======= Centraliza o footer ======= */
+.footer .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

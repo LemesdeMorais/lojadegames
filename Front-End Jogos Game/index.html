@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Loja de Games</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark topbar fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center brand" href="#">
+                <span class="brand__logo" aria-hidden="true">🎮</span>
+                <span class="brand__title ms-2">NaBêra</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Alternar navegação">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
+                <ul class="navbar-nav align-items-lg-center gap-lg-3">
+                    <!-- Dropdown de Categorias -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoriaDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Categorias
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" id="categoriaDropdownList"
+                            aria-labelledby="categoriaDropdown">
+                            <!-- será preenchido via JS, baseado no select oculto -->
+                        </ul>
+                    </li>
+
+                    <!-- Busca -->
+                    <li class="nav-item">
+                        <form class="d-flex ms-lg-2 mt-2 mt-lg-0" role="search" onsubmit="event.preventDefault();">
+                            <input id="buscaInput" class="form-control input-search" type="search"
+                                placeholder="Buscar por nome ou descrição..." aria-label="Buscar" />
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Select oculto: mantém compatibilidade com seu JS existente -->
+        <select id="categoriaSelect" class="visually-hidden" aria-hidden="true">
+            <option value="">Todas as categorias</option>
+        </select>
+    </nav>
+
+
+    <main class="container main">
+        <section class="cards" id="produtosGrid" aria-live="polite"></section>
+
+        <aside class="panel">
+            <h2 class="panel__title">Novo produto</h2>
+            <form id="produtoForm" class="form" autocomplete="off">
+                <div class="grid-2">
+                    <div>
+                        <label for="nome">Nome</label>
+                        <input id="nome" name="nome" class="input" required />
+                    </div>
+
+                    <div>
+                        <label for="preco">Preço (R$)</label>
+                        <input id="preco" name="preco" type="number" step="0.01" min="0" class="input" required />
+                    </div>
+                </div>
+
+                <div>
+                    <label for="descricao">Descrição</label>
+                    <textarea id="descricao" name="descricao" class="input" rows="3"></textarea>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label for="categoriaId">Categoria</label>
+                        <select id="categoriaId" name="categoriaId" class="select" required>
+                            <!-- preenchido via JS -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="estoque">Estoque</label>
+                        <input id="estoque" name="estoque" type="number" min="0" class="input" required />
+                    </div>
+                </div>
+
+                <div>
+                    <label for="foto">URL da foto</label>
+                    <input id="foto" name="foto" type="url" class="input" placeholder="https://..." />
+                </div>
+
+                <button type="submit" class="btn btn--primary">Salvar produto</button>
+                <p id="formMsg" class="form__msg" role="status" aria-live="polite"></p>
+            </form>
+
+            <div class="panel__divider"></div>
+
+            <h3 class="panel__subtitle">Categorias</h3>
+            <ul id="categoriasLista" class="list"></ul>
+        </aside>
+    </main>
+
+    <template id="produtoCardTpl">
+        <article class="card">
+            <div class="card__imgWrap">
+                <img class="card__img" alt="" loading="lazy" />
+                <span class="badge"></span>
+            </div>
+            <div class="card__body">
+                <h3 class="card__title"></h3>
+                <p class="card__desc"></p>
+                <div class="card__meta">
+                    <span class="price"></span>
+                    <span class="stock"></span>
+                </div>
+            </div>
+        </article>
+    </template>
+
+    <footer class="footer">
+        <div class="container">
+            <small>© NaBêra • Exemplo didático • Desenvolvido por Rafaela Lemes</small>
+        </div>
+    </footer>
+
+    <script>
+        // ======= CONFIG DOS ENDPOINTS (ajuste conforme seu back-end Spring) =======
+        const API_BASE = "http://localhost:8080";
+        const ENDPOINTS = {
+            produtos: `${API_BASE}/produtos`,
+            categorias: `${API_BASE}/categorias`,
+        };
+
+        // ======= UTIL =======
+        const brl = (n) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n ?? 0);
+        const el = (sel) => document.querySelector(sel);
+        const tpl = (id) => el(id).content.firstElementChild.cloneNode(true);
+
+        // ======= ESTADO =======
+        let categorias = [];
+        let produtos = [];
+
+        // ======= DOM ELEMENTS =======
+        const categoriaSelect = el("#categoriaSelect"); // oculto
+        const buscaInput = el("#buscaInput");
+        const produtosGrid = el("#produtosGrid");
+        const categoriasLista = el("#categoriasLista");
+        const form = el("#produtoForm");
+        const formMsg = el("#formMsg");
+        const categoriaFormSelect = el("#categoriaId");
+
+        // ⚠️ Esses dois só existem após o carregamento da navbar:
+        let categoriaDropdownList;
+        let categoriaDropdown;
+
+        // ======= RENDER =======
+        function renderCategorias() {
+            // Garante que os elementos do dropdown existam
+            categoriaDropdownList = document.getElementById("categoriaDropdownList");
+            categoriaDropdown = document.getElementById("categoriaDropdown");
+
+            // select do topo (oculto, compatibilidade)
+            categoriaSelect.innerHTML = '<option value="">Todas as categorias</option>' +
+                categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join("");
+
+            // select do formulário
+            categoriaFormSelect.innerHTML = '<option value="" disabled selected>Selecione</option>' +
+                categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join("");
+
+            // lista lateral
+            categoriasLista.innerHTML = categorias
+                .map(c => `<li>${c.nome} <small>(id: ${c.id})</small></li>`)
+                .join("");
+
+            // dropdown da navbar
+            setupCategoriaDropdown();
+        }
+
+        function setupCategoriaDropdown() {
+            if (!categoriaDropdownList || !categoriaDropdown) return;
+
+            // popula o dropdown com categorias reais
+            categoriaDropdownList.innerHTML =
+                '<li><a class="dropdown-item" href="#" data-id="">Todas as categorias</a></li>' +
+                categorias.map(c => `<li><a class="dropdown-item" href="#" data-id="${c.id}">${c.nome}</a></li>`).join("");
+
+            // listeners de clique no dropdown
+            categoriaDropdownList.querySelectorAll(".dropdown-item").forEach(item => {
+                item.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const id = e.currentTarget.getAttribute("data-id") || "";
+                    categoriaSelect.value = id; // mantém compatibilidade
+                    renderProdutos();
+
+                    // atualiza label
+                    const nome = id === ""
+                        ? "Categorias"
+                        : (categorias.find(c => String(c.id) === String(id))?.nome || "Categorias");
+                    categoriaDropdown.textContent = nome;
+                });
+            });
+        }
+
+        function renderProdutos() {
+            const termo = buscaInput.value.trim().toLowerCase();
+            const catId = categoriaSelect.value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = !catId || String(p.categoria?.id ?? p.categoriaId) === String(catId);
+                const matchTermo = !termo ||
+                    p.nome.toLowerCase().includes(termo) ||
+                    (p.descricao || "").toLowerCase().includes(termo);
+                return matchCat && matchTermo;
+            });
+
+            produtosGrid.innerHTML = "";
+
+            if (filtrados.length === 0) {
+                produtosGrid.innerHTML = `<p class="empty">Nenhum produto encontrado.</p>`;
+                return;
+            }
+
+            for (const p of filtrados) {
+                const card = tpl("#produtoCardTpl");
+                const img = card.querySelector(".card__img");
+                const badge = card.querySelector(".badge");
+                const title = card.querySelector(".card__title");
+                const desc = card.querySelector(".card__desc");
+                const price = card.querySelector(".price");
+                const stock = card.querySelector(".stock");
+
+                img.src = p.foto || "https://via.placeholder.com/600x400?text=Jogo";
+                img.alt = `Capa de ${p.nome}`;
+                badge.textContent = p.categoria?.nome ?? p.categoriaNome ?? "Sem categoria";
+                title.textContent = p.nome;
+                desc.textContent = p.descricao || "Sem descrição.";
+                price.textContent = brl(p.preco);
+                stock.textContent = (p.estoque ?? 0) > 0 ? `Estoque: ${p.estoque}` : "Sem estoque";
+
+                produtosGrid.appendChild(card);
+            }
+        }
+
+        // ======= AJUSTE IMPORTANTE =======
+        // ⚠️ Garante que o dropdown seja criado DEPOIS do carregamento da navbar e do fetch
+        async function carregarCategorias() {
+            try {
+                const r = await fetch(ENDPOINTS.categorias);
+                if (!r.ok) throw new Error("Falha ao carregar categorias");
+                categorias = await r.json();
+            } catch (e) {
+                categorias = [
+                    { id: 1, nome: "Ação" },
+                    { id: 2, nome: "RPG" },
+                    { id: 3, nome: "Esportes" },
+                ];
+                console.warn(e.message, "— usando categorias de exemplo.");
+            } finally {
+                // Espera o DOM inteiro carregar antes de renderizar
+                if (document.readyState !== "complete") {
+                    window.addEventListener("load", renderCategorias);
+                } else {
+                    renderCategorias();
+                }
+            }
+        }
+
+
+        function renderProdutos() {
+            const termo = buscaInput.value.trim().toLowerCase();
+            const catId = categoriaSelect.value;
+
+            const filtrados = produtos.filter(p => {
+                const matchCat = !catId || String(p.categoria?.id ?? p.categoriaId) === String(catId);
+                const matchTermo = !termo ||
+                    p.nome.toLowerCase().includes(termo) ||
+                    (p.descricao || "").toLowerCase().includes(termo);
+                return matchCat && matchTermo;
+            });
+
+            produtosGrid.innerHTML = "";
+
+            if (filtrados.length === 0) {
+                produtosGrid.innerHTML = `<p class="empty">Nenhum produto encontrado.</p>`;
+                return;
+            }
+
+            for (const p of filtrados) {
+                const card = tpl("#produtoCardTpl");
+                const img = card.querySelector(".card__img");
+                const badge = card.querySelector(".badge");
+                const title = card.querySelector(".card__title");
+                const desc = card.querySelector(".card__desc");
+                const price = card.querySelector(".price");
+                const stock = card.querySelector(".stock");
+
+                img.src = p.foto || "https://via.placeholder.com/600x400?text=Jogo";
+                img.alt = `Capa de ${p.nome}`;
+                badge.textContent = p.categoria?.nome ?? p.categoriaNome ?? "Sem categoria";
+                title.textContent = p.nome;
+                desc.textContent = p.descricao || "Sem descrição.";
+                price.textContent = brl(p.preco);
+                stock.textContent = (p.estoque ?? 0) > 0 ? `Estoque: ${p.estoque}` : "Sem estoque";
+
+                produtosGrid.appendChild(card);
+            }
+        }
+
+
+        // ======= API =======
+        async function carregarCategorias() {
+            try {
+                const r = await fetch(ENDPOINTS.categorias);
+                if (!r.ok) throw new Error("Falha ao carregar categorias");
+                categorias = await r.json();
+            } catch (e) {
+                // fallback mínimo para conseguir usar a UI se o back-end não estiver rodando
+                categorias = [
+                    { id: 1, nome: "Ação" },
+                    { id: 2, nome: "RPG" },
+                    { id: 3, nome: "Esportes" },
+                ];
+                console.warn(e.message, "— usando categorias de exemplo.");
+            } finally {
+                renderCategorias();
+            }
+        }
+
+        async function carregarProdutos() {
+            try {
+                const r = await fetch(ENDPOINTS.produtos);
+                if (!r.ok) throw new Error("Falha ao carregar produtos");
+                produtos = await r.json();
+            } catch (e) {
+                produtos = [
+                    {
+                        id: 101,
+                        nome: "Elder Quest IX",
+                        descricao: "RPG de mundo aberto com crafting e montarias.",
+                        preco: 249.90,
+                        categoria: { id: 2, nome: "RPG" },
+                        estoque: 12,
+                        foto: "https://images.unsplash.com/photo-1605901309584-818e25960a8b?q=80&w=1200&auto=format&fit=crop",
+                    },
+                    {
+                        id: 102,
+                        nome: "Goal Masters 24",
+                        descricao: "Simulador de futebol com modo carreira online.",
+                        preco: 199.90,
+                        categoria: { id: 3, nome: "Esportes" },
+                        estoque: 0,
+                        foto: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1200&auto=format&fit=crop",
+                    },
+                    {
+                        id: 103,
+                        nome: "Neon Strike",
+                        descricao: "Shooter frenético com trilha synthwave.",
+                        preco: 159.90,
+                        categoria: { id: 1, nome: "Ação" },
+                        estoque: 27,
+                        foto: "https://images.unsplash.com/photo-1580237089979-3eead3c9edab?q=80&w=1200&auto=format&fit=crop",
+                    },
+                ];
+                console.warn(e.message, "— usando produtos de exemplo.");
+            } finally {
+                renderProdutos();
+            }
+        }
+
+        /* ======= AQUI É A ÚNICA ALTERAÇÃO: função salvarProduto tolerante a 201 sem corpo ======= */
+        async function salvarProduto(data) {
+            const payload = {
+                nome: data.get("nome"),
+                descricao: data.get("descricao"),
+                preco: Number(data.get("preco")),
+                estoque: Number(data.get("estoque")),
+                foto: data.get("foto"),
+                categoria: { id: Number(data.get("categoriaId")) },
+            };
+
+            console.log("➡️ Enviando para backend:", payload);
+
+            try {
+                const r = await fetch(ENDPOINTS.produtos, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                console.log("📥 Resposta do backend:", r.status, r.statusText);
+
+                if (!r.ok) {
+                    const msg = await r.text();
+                    throw new Error(msg || `Erro ao salvar (HTTP ${r.status})`);
+                }
+
+                let novo = null;
+                const ct = r.headers.get("content-type") || "";
+                if (ct.includes("application/json")) {
+                    novo = await r.json();
+                    console.log("🟢 Produto retornado:", novo);
+                } else {
+                    // tenta buscar pelo Location
+                    const location = r.headers.get("Location") || r.headers.get("location");
+                    if (location) {
+                        const id = location.split("/").pop();
+                        const rr = await fetch(`${ENDPOINTS.produtos}/${id}`);
+                        if (rr.ok) novo = await rr.json();
+                    }
+                }
+
+                if (!novo) {
+                    // fallback se backend não devolveu JSON
+                    novo = {
+                        ...payload,
+                        id: Date.now(),
+                        categoria: categorias.find(c => Number(c.id) === payload.categoria.id) || null,
+                    };
+                }
+
+                produtos.unshift(novo);
+                renderProdutos();
+                form.reset();
+                formMsg.textContent = "✅ Produto salvo com sucesso!";
+                formMsg.className = "form__msg form__msg--ok";
+            } catch (e) {
+                console.error("❌ Erro ao salvar:", e);
+                const fallback = {
+                    id: Math.floor(Math.random() * 100000),
+                    nome: payload.nome,
+                    descricao: payload.descricao,
+                    preco: payload.preco,
+                    estoque: payload.estoque,
+                    foto: payload.foto,
+                    categoria: categorias.find(c => Number(c.id) === payload.categoria.id) || null,
+                };
+                produtos.unshift(fallback);
+                renderProdutos();
+                formMsg.textContent = `Back-end indisponível — ${e.message}`;
+                formMsg.className = "form__msg form__msg--warn";
+            }
+        }
+        /* ======= fim da alteração ======= */
+
+        // ======= EVENTOS =======
+        categoriaSelect.addEventListener("change", renderProdutos);
+        buscaInput.addEventListener("input", renderProdutos);
+
+        form.addEventListener("submit", (ev) => {
+            ev.preventDefault();
+            const data = new FormData(form);
+            // validação básica
+            if (!data.get("nome") || !data.get("preco") || !data.get("categoriaId")) {
+                formMsg.textContent = "Preencha os campos obrigatórios.";
+                formMsg.className = "form__msg form__msg--error";
+                return;
+            }
+            salvarProduto(data);
+        });
+
+        // ======= BOOT =======
+        (async function init() {
+            await carregarCategorias();
+            await carregarProdutos();
+        })();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
