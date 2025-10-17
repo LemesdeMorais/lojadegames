@@ -74,7 +74,7 @@ DELETE /categorias/{id} — Remove categoria
 ## 🚀 Como rodar o projeto
 ### Back-End (Spring Boot)
 1. Clone o repositório:
-   git clone https://github.com/seuusuario/loja-de-games.git
+   git clone [Repositório](https://github.com/LemesdeMorais/lojadegames.git)
 2. Acesse a pasta do projeto:
    cd loja-de-games/backend
 3. Execute o projeto Spring Boot:
